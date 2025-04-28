@@ -1,0 +1,6 @@
+known_users_images
+known_users_encodings
+.env
+
+__pycache__
+face-env
