@@ -4,12 +4,22 @@ from fastapi.responses import JSONResponse
 import numpy as np
 import io
 import os
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 
 upload_user_checkin_pics_directory= "known_users_images"
 upload_user_checkin_encodings_directory= "known_users_encodings"
 
 app = FastAPI()
+
+# Allow CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],  # or specify ['POST', 'GET', ...]
+    allow_headers=["*"],  # or specify ['Authorization', 'Content-Type', ...]
+)
 
 @app.post('/checkin/')
 async def checkin_user(file: UploadFile):
@@ -18,23 +28,25 @@ async def checkin_user(file: UploadFile):
         extension= file.filename.split('.')[1]
         v4= uuid.uuid4()
         file_location_for_known_users_images= f"./{upload_user_checkin_pics_directory}/{v4}.{extension}"
-        #file_location_for_known_users_encodings= f"./{upload_user_checkin_encodings_directory}/{v4}.{extension}"
-        #print(encodings)
-        os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
-        os.makedirs(upload_user_checkin_encodings_directory, exist_ok=True)
-
-        with open(file_location_for_known_users_images,"wb") as buffer:
-            buffer.write(image)
-
         # Load image and extract face encodings
         img = face_recognition.load_image_file(io.BytesIO(image))
         encodings = face_recognition.face_encodings(img)
 
         if not encodings:
+            print("No face found in uploaded image")
             return JSONResponse(
                 status_code=400,
-                content={"message": "No face found in uploaded image."}
+                content={
+                    "data":{
+                        "message": "No face found in uploaded image."
+                    }
+                }
             )
+        os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
+        os.makedirs(upload_user_checkin_encodings_directory, exist_ok=True)
+
+        with open(file_location_for_known_users_images,"wb") as buffer:
+            buffer.write(image)
 
         # Save first face encoding (you can handle multiple faces if needed)
         encoding_file_path = os.path.join(upload_user_checkin_encodings_directory, f"{v4}.npy")
@@ -43,8 +55,7 @@ async def checkin_user(file: UploadFile):
         return JSONResponse(
             status_code=200,
             content={
-                "fileName": f"{v4}.{extension}",
-                "encodingFile": f"{v4}.npy"
+                "message":"Checked in"
             }
         )
     except Exception as e:
@@ -95,7 +106,7 @@ async def recognize_user(file: UploadFile):
                 return JSONResponse(
                     status_code=200,
                     content={
-                        "message": "User recognized",
+                        "message": "Checked out",
                         "user_id": matched_user_id
                     }
                 )
