@@ -12,6 +12,8 @@ import firebase_admin
 from firebase_admin import credentials
 from models.user_model import User
 import pandas as pd
+from openpyxl import load_workbook, Workbook
+
 
 
 upload_user_checkin_pics_directory= "known_users_images"
@@ -22,7 +24,9 @@ pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract
 cred = credentials.Certificate('./face-recognition-1579d-firebase-adminsdk-fbsvc-444ef07505.json')
 firebase_admin.initialize_app(cred)
 
-existing_file = './visitors.xlsx'
+# Define the file name
+file_name = "visitors.xlsx"
+file_path = os.path.join(os.getcwd(), file_name)
 
 
 
@@ -162,33 +166,32 @@ async def recognize_user(file: UploadFile):
 @app.post('/create-user/')
 async def create_user(user: User):
     try:
-        # New data to append
-        new_data = {
-            'full_name': [user.full_name], 
-            'cnic': [user.cnic], 
-            'user_id': [user.user_id],
-            'check_in': [user.check_in]
-        }
-        df_new = pd.DataFrame(new_data)
+        # Check if the file exists
+        if os.path.exists(file_path):
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+        else:
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Sheet1"
+            # Write column headers only once when creating a new file
+            headers = ["full_name", "cnic", "check_in", "check_out","user_id"]
+            sheet.append(headers)
 
-        # Read existing data
-        df_existing = pd.read_excel(existing_file)
+        # Append user data as a new row
+        new_row = [user.full_name, user.cnic, user.check_in, "", user.user_id]
+        sheet.append(new_row)
 
-        # Append new data
-        df_combined = df_existing.add(df_new, ignore_index=True)
+        # Save the updated Excel file
+        workbook.save(file_path)
 
-        # Save the combined data to Excel
-        df_combined.to_excel(existing_file, index=False)
         return JSONResponse(
             status_code=200,
-            content={
-                "message":"checked in"
-            }
+            content={"message": "User data saved successfully"}
         )
+
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={
-                "message":str(e)
-            }
+            content={"message": str(e)}
         )
