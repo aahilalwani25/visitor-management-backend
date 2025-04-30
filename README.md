@@ -17,15 +17,13 @@ The command to install libraries: `pip install <library-name>`
 Example: `pip install fastapi pytesseract` (You can use multiple library names at once)
 1. fastapi
 2. pytesseract
-3. mumpy
+3. numpy
 4. io
 5. os
 6. uuid
 7. dlib
 8. face_recognition
-9. pil
 10. openpyxl
-11. pandas
 
 
 ## Creating Virtual environment
