@@ -1,17 +1,15 @@
-from fastapi import FastAPI, UploadFile, Request, Body
+from fastapi import FastAPI, UploadFile
 import face_recognition
 from fastapi.responses import JSONResponse
 import numpy as np
 import io
-from PIL import Image
 import os
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import pytesseract
-import firebase_admin
-from firebase_admin import credentials
+#import firebase_admin
+#from firebase_admin import credentials
 from models.user_model import User
-import pandas as pd
 from openpyxl import load_workbook, Workbook
 
 
@@ -21,8 +19,8 @@ upload_user_checkin_encodings_directory= "known_users_encodings"
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # Initialize Firebase Admin SDK (replace 'path/to/your/serviceAccountKey.json' with the actual path)
-cred = credentials.Certificate('./face-recognition-1579d-firebase-adminsdk-fbsvc-444ef07505.json')
-firebase_admin.initialize_app(cred)
+# cred = credentials.Certificate('./path/to/service-account-key.json')
+# firebase_admin.initialize_app(cred)
 
 # Define the file name
 file_name = "visitors.xlsx"
