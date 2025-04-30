@@ -7,7 +7,7 @@ Python 3.10.11
 ## libraries to be installed
 
 The command to install libraries: `pip install <library-name>`
-Example: `pip install fastapi pytesseract` (You can use multiple ap)
+Example: `pip install fastapi pytesseract` (You can use multiple library names at once)
 1. fastapi
 2. pytesseract
 3. mumpy
