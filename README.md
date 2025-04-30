@@ -7,9 +7,9 @@ Python 3.10.11
 ## Create Virtual Environment
 use command: `py -m venv face-env`
 Then activate env:
-`cd face-env/Scripts`
-`./activate`
-`cd ../..`
+1. `cd face-env/Scripts`
+2. `./activate`
+3. `cd ../..`
 
 ## libraries to be installed
 
