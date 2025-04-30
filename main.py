@@ -10,7 +10,7 @@ import uuid
 import pytesseract
 import firebase_admin
 from firebase_admin import credentials
-from models.create_user_model import User
+from models.user_model import User
 import pandas as pd
 
 
