@@ -4,10 +4,17 @@ A Face-Recognition appVisitor Management System Backend application for checkin 
 ## Python Version
 Python 3.10.11
 
+## Create Virtual Environment
+use command: `py -m venv face-env`
+Then activate env:
+1. `cd face-env/Scripts`
+2. `./activate`
+3. `cd ../..`
+
 ## libraries to be installed
 
 The command to install libraries: `pip install <library-name>`
-Example: `pip install fastapi pytesseract` (You can use multiple ap)
+Example: `pip install fastapi pytesseract` (You can use multiple library names at once)
 1. fastapi
 2. pytesseract
 3. mumpy
@@ -16,6 +23,10 @@ Example: `pip install fastapi pytesseract` (You can use multiple ap)
 6. uuid
 7. dlib
 8. face_recognition
+9. pil
+10. openpyxl
+11. pandas
+
 
 ## Creating Virtual environment
 run sequence of commands:
