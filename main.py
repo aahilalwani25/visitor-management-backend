@@ -1,14 +1,30 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, UploadFile, Request, Body
 import face_recognition
 from fastapi.responses import JSONResponse
 import numpy as np
 import io
+from PIL import Image
 import os
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
+import pytesseract
+import firebase_admin
+from firebase_admin import credentials
+from models.create_user_model import User
+import pandas as pd
+
 
 upload_user_checkin_pics_directory= "known_users_images"
 upload_user_checkin_encodings_directory= "known_users_encodings"
+pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+# Initialize Firebase Admin SDK (replace 'path/to/your/serviceAccountKey.json' with the actual path)
+cred = credentials.Certificate('./face-recognition-1579d-firebase-adminsdk-fbsvc-444ef07505.json')
+firebase_admin.initialize_app(cred)
+
+existing_file = './visitors.xlsx'
+
+
 
 app = FastAPI()
 
@@ -122,5 +138,57 @@ async def recognize_user(file: UploadFile):
             content={
                 "status": 500,
                 "message": str(e)
+            }
+        )
+    
+# @app.post('/scan-cnic/')
+# async def scan_cnic(file: UploadFile):
+#     try:
+#         # Read and convert uploaded image
+#         contents = await file.read()
+#         image = Image.open(io.BytesIO(contents))
+
+        
+#     except Exception as e:
+#         return JSONResponse(
+#             status_code=500,
+#             content={
+#                 "status": 500,
+#                 "message": str(e)
+#             }
+#         )
+        
+
+@app.post('/create-user/')
+async def create_user(user: User):
+    try:
+        # New data to append
+        new_data = {
+            'full_name': [user.full_name], 
+            'cnic': [user.cnic], 
+            'user_id': [user.user_id],
+            'check_in': [user.check_in]
+        }
+        df_new = pd.DataFrame(new_data)
+
+        # Read existing data
+        df_existing = pd.read_excel(existing_file)
+
+        # Append new data
+        df_combined = df_existing.add(df_new, ignore_index=True)
+
+        # Save the combined data to Excel
+        df_combined.to_excel(existing_file, index=False)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message":"checked in"
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "message":str(e)
             }
         )

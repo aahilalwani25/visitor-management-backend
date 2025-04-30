@@ -4,6 +4,16 @@ A Face-Recognition appVisitor Management System Backend application for checkin 
 ## Python Version
 Python 3.10.11
 
+## libraries to be installed
+1. fastapi
+2. pytesseract
+3. mumpy
+4. io
+5. os
+6. uuid
+7. dlib
+8. face_recognition
+
 ## Creating Virtual environment
 run sequence of commands:
 1. `py -m venv face-env`
