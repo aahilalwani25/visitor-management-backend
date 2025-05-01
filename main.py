@@ -11,6 +11,9 @@ import pytesseract
 #from firebase_admin import credentials
 from models.user_model import User
 from openpyxl import load_workbook, Workbook
+from src.id_scanner import IDCardScanner
+import cv2
+from paddleocr import PaddleOCR
 
 
 
@@ -143,23 +146,52 @@ async def recognize_user(file: UploadFile):
             }
         )
     
-# @app.post('/scan-cnic/')
-# async def scan_cnic(file: UploadFile):
-#     try:
-#         # Read and convert uploaded image
-#         contents = await file.read()
-#         image = Image.open(io.BytesIO(contents))
-
+@app.post('/scan-cnic/')
+async def scan_cnic(file: UploadFile):
+    try:
+        # Read uploaded image
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-#     except Exception as e:
-#         return JSONResponse(
-#             status_code=500,
-#             content={
-#                 "status": 500,
-#                 "message": str(e)
-#             }
-#         )
+        # Initialize ID scanner
+        scanner = IDCardScanner()
         
+        # Process the image
+        processed_image, ocr_result = scanner.process_image(image)
+        
+        # Extract text and confidence scores
+        extracted_text = []
+        for line in ocr_result:
+            for word_info in line:
+                text = word_info[1][0]
+                confidence = word_info[1][1]
+                extracted_text.append({
+                    "text": text,
+                    "confidence": float(confidence)
+                })
+        
+        # Convert processed image to bytes for response
+        _, buffer = cv2.imencode('.jpg', processed_image)
+        processed_image_bytes = buffer.tobytes()
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "ID card processed successfully",
+                "extracted_text": extracted_text,
+                "processed_image": processed_image_bytes.decode('latin1')  # Convert bytes to string for JSON
+            }
+        )
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": 500,
+                "message": str(e)
+            }
+        )
 
 @app.post('/create-user/')
 async def create_user(user: User):
