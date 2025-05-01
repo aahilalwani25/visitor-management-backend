@@ -12,6 +12,7 @@ import pytesseract
 from models.user_model import User
 from openpyxl import load_workbook, Workbook
 from src.id_scanner import IDCardScanner
+from src.visitor_processor import extract_visitor_info, format_visitor_record
 import cv2
 from paddleocr import PaddleOCR
 
@@ -171,16 +172,49 @@ async def scan_cnic(file: UploadFile):
                     "confidence": float(confidence)
                 })
         
-        # Convert processed image to bytes for response
-        _, buffer = cv2.imencode('.jpg', processed_image)
-        processed_image_bytes = buffer.tobytes()
+        # Process visitor information
+        ocr_response = {"extracted_text": extracted_text}
+        name, cnic = extract_visitor_info(ocr_response)
+        
+        if not name or not cnic:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "message": "Could not extract required information from ID card",
+                    "error": "Missing name or CNIC"
+                }
+            )
+        
+        # Format visitor record
+        visitor_record = format_visitor_record(name, cnic)
+        
+        # Save to Excel file
+        if os.path.exists(file_path):
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+        else:
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Sheet1"
+            headers = ["full_name", "cnic", "check_in", "check_out", "user_id"]
+            sheet.append(headers)
+        
+        # Append visitor data
+        sheet.append([
+            visitor_record["full_name"],
+            visitor_record["cnic"],
+            visitor_record["check_in"],
+            visitor_record["check_out"],
+            visitor_record["user_id"]
+        ])
+        
+        workbook.save(file_path)
         
         return JSONResponse(
             status_code=200,
             content={
-                "message": "ID card processed successfully",
-                "extracted_text": extracted_text,
-                "processed_image": processed_image_bytes.decode('latin1')  # Convert bytes to string for JSON
+                "message": "ID card processed and visitor recorded successfully",
+                "visitor": visitor_record
             }
         )
         
