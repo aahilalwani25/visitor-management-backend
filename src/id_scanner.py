@@ -3,6 +3,8 @@ import numpy as np
 from paddleocr import PaddleOCR
 import os
 
+
+
 class IDCardScanner:
     def __init__(self):
         # Initialize PaddleOCR with English language
