@@ -11,6 +11,8 @@ import pytesseract
 #from firebase_admin import credentials
 from models.user_model import User
 from openpyxl import load_workbook, Workbook
+from datetime import datetime
+from controller.visitor_controller import VisitorController
 
 
 
@@ -18,9 +20,7 @@ upload_user_checkin_pics_directory= "known_users_images"
 upload_user_checkin_encodings_directory= "known_users_encodings"
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-# Initialize Firebase Admin SDK (replace 'path/to/your/serviceAccountKey.json' with the actual path)
-# cred = credentials.Certificate('./path/to/service-account-key.json')
-# firebase_admin.initialize_app(cred)
+visitor_controller= VisitorController()
 
 # Define the file name
 file_name = "visitors.xlsx"
@@ -39,13 +39,15 @@ app.add_middleware(
     allow_headers=["*"],  # or specify ['Authorization', 'Content-Type', ...]
 )
 
+# Get the current date and time in ISO 8601 format
+current_iso_time = datetime.utcnow().isoformat() + "Z"  # Adding 'Z' to indicate UTC
+
 @app.post('/checkin/')
 async def checkin_user(file: UploadFile):
     try:
         image = await file.read()
         extension= file.filename.split('.')[1]
         v4= uuid.uuid4()
-        file_location_for_known_users_images= f"./{upload_user_checkin_pics_directory}/{v4}.{extension}"
         # Load image and extract face encodings
         img = face_recognition.load_image_file(io.BytesIO(image))
         encodings = face_recognition.face_encodings(img)
@@ -55,25 +57,36 @@ async def checkin_user(file: UploadFile):
             return JSONResponse(
                 status_code=400,
                 content={
-                    "data":{
-                        "message": "No face found in uploaded image."
-                    }
+                    "message": "No face found in uploaded image.",
                 }
             )
         os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
         os.makedirs(upload_user_checkin_encodings_directory, exist_ok=True)
 
-        with open(file_location_for_known_users_images,"wb") as buffer:
-            buffer.write(image)
-
-        # Save first face encoding (you can handle multiple faces if needed)
-        encoding_file_path = os.path.join(upload_user_checkin_encodings_directory, f"{v4}.npy")
-        np.save(encoding_file_path, encodings[0])
+        verify_face= visitor_controller.verify_face(image=image, type="checkin")
+        new_user_id= None
+        if(verify_face["status"]==404):
+            new_user_id= visitor_controller.create_user_face(image=image, encodings=encodings[0], extension=extension)
+            # Save first face encoding (you can handle multiple faces if needed)
+            encoding_file_path = os.path.join(upload_user_checkin_encodings_directory, f"{new_user_id}.npy")
+            np.save(encoding_file_path, encodings[0])
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "message":"Face Not recognized, saved your new face",
+                    "data":{
+                        "new_user_id": str(new_user_id)
+                    }
+                }
+            )
 
         return JSONResponse(
             status_code=200,
             content={
-                "message":"Checked in"
+                "message":"Checked in",
+                "data":{
+                    "new_user_id": new_user_id
+                }
             }
         )
     except Exception as e:
@@ -91,7 +104,7 @@ async def recognize_user(file: UploadFile):
         # Read uploaded image
         image = await file.read()
 
-        # Load uploaded image and encode
+        # Load and encode uploaded image
         img = face_recognition.load_image_file(io.BytesIO(image))
         unknown_encodings = face_recognition.face_encodings(img)
 
@@ -103,7 +116,7 @@ async def recognize_user(file: UploadFile):
 
         unknown_encoding = unknown_encodings[0]
 
-        # Load all known encodings
+        # Load known encodings
         known_encodings = []
         known_ids = []
 
@@ -111,21 +124,37 @@ async def recognize_user(file: UploadFile):
             if filename.endswith('.npy'):
                 filepath = os.path.join(upload_user_checkin_encodings_directory, filename)
                 encoding = np.load(filepath)
+                if encoding.ndim > 1:
+                    encoding = encoding.flatten()
                 known_encodings.append(encoding)
-                user_id = filename.split('.')[0]  # uuid as user id
-                known_ids.append(user_id)
+                known_ids.append(filename.split('.')[0])
 
-        # Compare the uploaded face with all known faces
+        # Compare faces
         results = face_recognition.compare_faces(known_encodings, unknown_encoding, tolerance=0.5)
 
         for idx, match in enumerate(results):
             if match:
                 matched_user_id = known_ids[idx]
+                current_time = datetime.utcnow().isoformat() + 'Z'
+
+                # Load Excel file
+                wb = load_workbook(file_path)
+                ws = wb.active  # Assumes single sheet
+
+                # Find matching user_id and update checkout column (column D)
+                for row in ws.iter_rows(min_row=2):  # Skip header
+                    if str(row[4].value) == matched_user_id:
+                        row[3].value = current_time  # Column D (index 3)
+                        break
+
+                wb.save(filename=file_path)
+
                 return JSONResponse(
                     status_code=200,
                     content={
                         "message": "Checked out",
-                        "user_id": matched_user_id
+                        "user_id": matched_user_id,
+                        "checkout_time": current_time
                     }
                 )
 
@@ -137,29 +166,8 @@ async def recognize_user(file: UploadFile):
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={
-                "status": 500,
-                "message": str(e)
-            }
+            content={"status": 500, "message": str(e)}
         )
-    
-# @app.post('/scan-cnic/')
-# async def scan_cnic(file: UploadFile):
-#     try:
-#         # Read and convert uploaded image
-#         contents = await file.read()
-#         image = Image.open(io.BytesIO(contents))
-
-        
-#     except Exception as e:
-#         return JSONResponse(
-#             status_code=500,
-#             content={
-#                 "status": 500,
-#                 "message": str(e)
-#             }
-#         )
-        
 
 @app.post('/create-user/')
 async def create_user(user: User):
