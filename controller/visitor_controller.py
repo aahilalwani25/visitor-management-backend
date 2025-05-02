@@ -23,11 +23,12 @@ class VisitorController:
             self.sheet = self.workbook.active
         else:
             self.workbook = Workbook()
-            sheet = self.workbook.active
+            self.sheet = self.workbook.active
             self.sheet.title = "Sheet1"
             # Write column headers only once when creating a new file
             self.headers = ["full_name", "cnic", "check_in", "check_out","user_id"]
             self.sheet.append(self.headers)
+            self.workbook.save(self.file_path)
 
 
     def update_visitor_checkin(self, user_id: str, check_in_time: str):
@@ -48,11 +49,6 @@ class VisitorController:
         file_location_for_known_users_images= f"./{upload_user_checkin_pics_directory}/{user_id}.{extension}"
         with open(file_location_for_known_users_images,"wb") as buffer:
             buffer.write(image)
-
-        # Save first face encoding (you can handle multiple faces if needed)
-        # encoding_file_path = os.path.join(upload_user_checkin_encodings_directory, f"{user_id}.npy")
-        # np.save(encoding_file_path, encodings[0])
-
         return user_id
     
     def verify_face(self, image: bytes, type:str):

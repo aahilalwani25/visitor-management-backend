@@ -13,12 +13,19 @@ from models.user_model import User
 from openpyxl import load_workbook, Workbook
 from datetime import datetime
 from controller.visitor_controller import VisitorController
+from google.cloud import vision
+from google.oauth2 import service_account
+import re
 
-
+# Load credentials from your service account key
+credentials = service_account.Credentials.from_service_account_file("service-account-key.json")
+client = vision.ImageAnnotatorClient(credentials=credentials)
 
 upload_user_checkin_pics_directory= "known_users_images"
 upload_user_checkin_encodings_directory= "known_users_encodings"
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+WORD = re.compile(r"\w+")
 
 visitor_controller= VisitorController()
 
@@ -79,13 +86,30 @@ async def checkin_user(file: UploadFile):
                     }
                 }
             )
+        else:
+            current_time = datetime.utcnow().isoformat() + 'Z'
+
+            # Load Excel file
+            wb = load_workbook(file_path)
+            ws = wb.active  # Assumes single sheet
+
+            for row in ws.iter_rows(min_row=2):  # Skip header
+                if str(row[4].value) == verify_face["data"]["user_id"]:
+                    if row[2].value is None:
+                        row[2].value = current_time
+                    else:
+                        row[2].value = str(row[2].value) + " | " + current_time
+                    break
+
+            wb.save(filename=file_path)
+        
 
         return JSONResponse(
             status_code=200,
             content={
                 "message":"Checked in",
                 "data":{
-                    "new_user_id": new_user_id
+                    "new_user_id": verify_face["data"]["user_id"]
                 }
             }
         )
@@ -144,7 +168,10 @@ async def recognize_user(file: UploadFile):
                 # Find matching user_id and update checkout column (column D)
                 for row in ws.iter_rows(min_row=2):  # Skip header
                     if str(row[4].value) == matched_user_id:
-                        row[3].value = current_time  # Column D (index 3)
+                        if row[3].value is None:
+                            row[3].value = current_time
+                        else:
+                            row[3].value = str(row[3].value) + " | " + current_time
                         break
 
                 wb.save(filename=file_path)
@@ -196,6 +223,36 @@ async def create_user(user: User):
             content={"message": "User data saved successfully"}
         )
 
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"message": str(e)}
+        )
+    
+
+@app.post('/scan-cnic/')
+async def scan_cnic(file: UploadFile):
+    try:
+        content = await file.read()
+        image = vision.Image(content=content)
+
+        response = client.text_detection(image=image)
+        texts = response.text_annotations
+
+        if response.error.message:
+            return {"error": response.error.message}
+
+        extracted_text = texts[0].description if texts else ""
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": extracted_text,
+                "data":{
+                    "text": extracted_text
+                }}
+        )
+    
     except Exception as e:
         return JSONResponse(
             status_code=500,
