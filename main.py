@@ -64,7 +64,7 @@ async def checkin_user(file: UploadFile):
             return JSONResponse(
                 status_code=400,
                 content={
-                    "message": "No face found in uploaded image.",
+                    "message": "No face found. Please try again.",
                 }
             )
         os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
@@ -72,6 +72,7 @@ async def checkin_user(file: UploadFile):
 
         verify_face= visitor_controller.verify_face(image=image, type="checkin")
         new_user_id= None
+        checkedin_name= None
         if(verify_face["status"]==404):
             new_user_id= visitor_controller.create_user_face(image=image, encodings=encodings[0], extension=extension)
             # Save first face encoding (you can handle multiple faces if needed)
@@ -92,12 +93,12 @@ async def checkin_user(file: UploadFile):
             # Load Excel file
             wb = load_workbook(file_path)
             ws = wb.active  # Assumes single sheet
-
             for row in ws.iter_rows(min_row=2):  # Skip header
                 if str(row[4].value) == verify_face["data"]["user_id"]:
                     if row[2].value is None:
                         row[2].value = current_time
                     else:
+                        checkedin_name= row[0].value
                         row[2].value = str(row[2].value) + " | " + current_time
                     break
 
@@ -107,10 +108,7 @@ async def checkin_user(file: UploadFile):
         return JSONResponse(
             status_code=200,
             content={
-                "message":"Checked in",
-                "data":{
-                    "new_user_id": verify_face["data"]["user_id"]
-                }
+                "message":f'Checked in: {checkedin_name}',
             }
         )
     except Exception as e:
@@ -155,7 +153,7 @@ async def recognize_user(file: UploadFile):
 
         # Compare faces
         results = face_recognition.compare_faces(known_encodings, unknown_encoding, tolerance=0.5)
-
+        checkedout_name= None
         for idx, match in enumerate(results):
             if match:
                 matched_user_id = known_ids[idx]
@@ -172,6 +170,7 @@ async def recognize_user(file: UploadFile):
                             row[3].value = current_time
                         else:
                             row[3].value = str(row[3].value) + " | " + current_time
+                            checkedout_name= row[0].value
                         break
 
                 wb.save(filename=file_path)
@@ -179,9 +178,7 @@ async def recognize_user(file: UploadFile):
                 return JSONResponse(
                     status_code=200,
                     content={
-                        "message": "Checked out",
-                        "user_id": matched_user_id,
-                        "checkout_time": current_time
+                        "message": f'Checked out, {checkedout_name}',
                     }
                 )
 
