@@ -32,6 +32,8 @@ Example: `pip install fastapi pytesseract` (You can use multiple library names a
 6. face_recognition
 7. openpyxl
 8. uvicorn
+9. paddleocr
+10. torch=2.2.1
 
 ## Creating Virtual environment
 

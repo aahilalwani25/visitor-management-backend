@@ -24,6 +24,7 @@ EXCLUDED_TEXTS = {
 
 def extract_visitor_info(ocr_response):
     extracted_text = ocr_response.get("extracted_text", [])
+    print(extracted_text)
     
     name = None
     cnic = None

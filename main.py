@@ -14,7 +14,6 @@ from openpyxl import load_workbook, Workbook
 from src.id_scanner import IDCardScanner
 from src.visitor_processor import extract_visitor_info, format_visitor_record
 import cv2
-from paddleocr import PaddleOCR
 
 
 
@@ -147,13 +146,94 @@ async def recognize_user(file: UploadFile):
             }
         )
     
+# @app.post('/scan-cnic/')
+# async def scan_cnic(file: UploadFile):
+#     try:
+#         # Read uploaded image
+#         contents = await file.read()
+#         nparr = np.frombuffer(contents, np.uint8)
+#         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+#         # Initialize ID scanner
+#         scanner = IDCardScanner()
+        
+#         # Process the image
+#         processed_image, ocr_result = scanner.process_image(image)
+        
+#         # Extract text and confidence scores
+#         extracted_text = []
+#         for line in ocr_result:
+#             for word_info in line:
+#                 text = word_info[1][0]
+#                 confidence = word_info[1][1]
+#                 extracted_text.append({
+#                     "text": text,
+#                     "confidence": float(confidence)
+#                 })
+        
+#         # Process visitor information
+#         ocr_response = {"extracted_text": extracted_text}
+#         name, cnic = extract_visitor_info(ocr_response)
+        
+#         if not name or not cnic:
+#             return JSONResponse(
+#                 status_code=400,
+#                 content={
+#                     "message": "Could not extract required information from ID card",
+#                     "error": "Missing name or CNIC"
+#                 }
+#             )
+        
+#         # Format visitor record
+#         visitor_record = format_visitor_record(name, cnic)
+        
+#         # Save to Excel file
+#         if os.path.exists(file_path):
+#             workbook = load_workbook(file_path)
+#             sheet = workbook.active
+#         else:
+#             workbook = Workbook()
+#             sheet = workbook.active
+#             sheet.title = "Sheet1"
+#             headers = ["full_name", "cnic", "check_in", "check_out", "user_id"]
+#             sheet.append(headers)
+        
+#         # Append visitor data
+#         sheet.append([
+#             visitor_record["full_name"],
+#             visitor_record["cnic"],
+#             visitor_record["check_in"],
+#             visitor_record["check_out"],
+#             visitor_record["user_id"]
+#         ])
+        
+#         workbook.save(file_path)
+        
+#         return JSONResponse(
+#             status_code=200,
+#             content={
+#                 "message": "ID card processed and visitor recorded successfully",
+#                 "visitor": visitor_record
+#             }
+#         )
+        
+#     except Exception as e:
+#         return JSONResponse(
+#             status_code=500,
+#             content={
+#                 "status": 500,
+#                 "message": str(e)
+#             }
+#         )
+
+
 @app.post('/scan-cnic/')
 async def scan_cnic(file: UploadFile):
     try:
         # Read uploaded image
         contents = await file.read()
         nparr = np.frombuffer(contents, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        image = cv2.imdecode(nparr, cv2.COLOR_BGR2GRAY)
         
         # Initialize ID scanner
         scanner = IDCardScanner()
@@ -226,6 +306,7 @@ async def scan_cnic(file: UploadFile):
                 "message": str(e)
             }
         )
+
 
 @app.post('/create-user/')
 async def create_user(user: User):

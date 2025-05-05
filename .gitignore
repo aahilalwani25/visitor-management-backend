@@ -5,3 +5,4 @@ known_users_encodings
 __pycache__
 face-env
 face-recognition-1579d-firebase-adminsdk-fbsvc-444ef07505.json
+service-account-key.json
