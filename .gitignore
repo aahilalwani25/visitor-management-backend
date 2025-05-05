@@ -5,3 +5,4 @@ known_users_encodings
 __pycache__
 face-env
 service-account-key.json
+visitors.xlsx
