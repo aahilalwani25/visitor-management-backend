@@ -95,19 +95,23 @@ async def checkin_user(file: UploadFile):
             ws = wb.active  # Assumes single sheet
             for row in ws.iter_rows(min_row=2):  # Skip header
                 if str(row[4].value) == verify_face["data"]["user_id"]:
-                    if row[2].value is None:
+                    if row[2].value is None: # add checkin if user comes for first time
                         row[2].value = current_time
                     else:
                         checked_name= row[0].value
                         #check checkedin and checkout array length
-                        checkedin_length= len(row[2].value.split(" | "))
-                        checkedout_length= len(row[3].value.split(" | "))
-                        if(checkedin_length == checkedout_length):
-                            row[2].value = str(row[2].value) + " | " + current_time
-                            final_message= "Checked in"
+                        checkedin_value = row[2].value or ""
+                        checkedout_value = row[3].value or ""
+
+                        checkedin_length = len(checkedin_value.split(" | ")) if checkedin_value else 0
+                        checkedout_length = len(checkedout_value.split(" | ")) if checkedout_value else 0
+
+                        if checkedin_length == checkedout_length:
+                            row[2].value = checkedin_value + (" | " if checkedin_value else "") + current_time  # checkin
+                            final_message = "Checked in"
                         else:
-                            row[3].value = str(row[3].value) + " | " + current_time
-                            final_message= "Checked out"
+                            row[3].value = checkedout_value + (" | " if checkedout_value else "") + current_time  # checkout
+                            final_message = "Checked out"
                     break
 
             wb.save(filename=file_path)
