@@ -49,6 +49,91 @@ app.add_middleware(
 # Get the current date and time in ISO 8601 format
 current_iso_time = datetime.utcnow().isoformat() + "Z"  # Adding 'Z' to indicate UTC
 
+@app.post('/verify/')
+async def checkin_user(file: UploadFile):
+    try:
+        image = await file.read()
+        extension= file.filename.split('.')[1]
+        v4= uuid.uuid4()
+        # Load image and extract face encodings
+        img = face_recognition.load_image_file(io.BytesIO(image))
+        encodings = face_recognition.face_encodings(img)
+
+        if not encodings:
+            print("No face found in uploaded image")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "message": "No face found. Please try again.",
+                }
+            )
+        os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
+        os.makedirs(upload_user_checkin_encodings_directory, exist_ok=True)
+
+        verify_face= visitor_controller.verify_face(image=image, type="checkin")
+        new_user_id= None
+        checked_name= None
+        if(verify_face["status"]==404):
+            new_user_id= visitor_controller.create_user_face(image=image, encodings=encodings[0], extension=extension)
+            # Save first face encoding (you can handle multiple faces if needed)
+            encoding_file_path = os.path.join(upload_user_checkin_encodings_directory, f"{new_user_id}.npy")
+            np.save(encoding_file_path, encodings[0])
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "message":"Face Not recognized, saved your new face",
+                    "data":{
+                        "new_user_id": str(new_user_id)
+                    }
+                }
+            )
+        else:
+            current_time = datetime.utcnow().isoformat() + 'Z'
+            final_message= None
+            # Load Excel file
+            wb = load_workbook(file_path)
+            ws = wb.active  # Assumes single sheet
+            for row in ws.iter_rows(min_row=2):  # Skip header
+                if str(row[4].value) == verify_face["data"]["user_id"]:
+                    if row[2].value is None:
+                        row[2].value = current_time
+                    else:
+                        checked_name= row[0].value
+                        #check checkedin and checkout array length
+                        checkedin_length= len(row[2].value.split(" | "))
+                        checkedout_length= len(row[3].value.split(" | "))
+                        if(checkedin_length == checkedout_length):
+                            row[2].value = str(row[2].value) + " | " + current_time
+                            final_message= "Checked in"
+                        else:
+                            row[3].value = str(row[3].value) + " | " + current_time
+                            final_message= "Checked out"
+                    break
+
+            wb.save(filename=file_path)
+            if checked_name is not None:
+                    return JSONResponse(
+                        status_code=200,
+                        content={
+                            "message": f'{final_message}, {checked_name}',
+                        }
+                    )
+            else:
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "message": f'No Face Found. Please Try again',
+                    }
+                )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": 500,
+                "message": str(e)
+            }
+        )
+
 @app.post('/checkin/')
 async def checkin_user(file: UploadFile):
     try:
@@ -152,7 +237,7 @@ async def recognize_user(file: UploadFile):
                 known_ids.append(filename.split('.')[0])
 
         # Compare faces
-        results = face_recognition.compare_faces(known_encodings, unknown_encoding, tolerance=0.5)
+        results = face_recognition.compare_faces(known_encodings, unknown_encoding, tolerance=0.45)
         checkedout_name= None
         for idx, match in enumerate(results):
             if match:
@@ -174,13 +259,20 @@ async def recognize_user(file: UploadFile):
                         break
 
                 wb.save(filename=file_path)
-
-                return JSONResponse(
-                    status_code=200,
-                    content={
-                        "message": f'Checked out, {checkedout_name}',
-                    }
-                )
+                if checkedout_name is not None:
+                    return JSONResponse(
+                        status_code=200,
+                        content={
+                            "message": f'Checked out, {checkedout_name}',
+                        }
+                    )
+                else:
+                    return JSONResponse(
+                        status_code=200,
+                        content={
+                            "message": f'No Face Found. Please Try again',
+                        }
+                    )
 
         return JSONResponse(
             status_code=404,
