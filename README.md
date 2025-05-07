@@ -48,4 +48,4 @@ run sequence of commands:
 
 ## Test The app
 
-run command `uvicorn main:app --reload`
+run command `uvicorn main:app --reload` or `python -m uvicorn main:app --reload`
