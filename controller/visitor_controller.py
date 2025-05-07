@@ -82,7 +82,6 @@ class VisitorController:
                         "user_id": matched_user_id
                     }
                 }
-            
         return {
             "status": 404,
             "message": "User not verified",

@@ -64,7 +64,7 @@ async def checkin_user(file: UploadFile):
             return JSONResponse(
                 status_code=400,
                 content={
-                    "message": "No face found. Please try again.",
+                    "message": "No face detected. Please ensure your face is clearly visible, look directly at the camera, and try again in a well-lit area.",
                 }
             )
         os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
@@ -81,7 +81,7 @@ async def checkin_user(file: UploadFile):
             return JSONResponse(
                 status_code=200,
                 content={
-                    "message":"Face Not recognized, saved your new face",
+                    "message":"Face not recognized. Your photo has been saved. Please complete the registration form to continue.",
                     "data":{
                         "new_user_id": str(new_user_id)
                     }
@@ -108,10 +108,10 @@ async def checkin_user(file: UploadFile):
 
                         if checkedin_length == checkedout_length:
                             row[2].value = checkedin_value + (" | " if checkedin_value else "") + current_time  # checkin
-                            final_message = "Checked in"
+                            final_message = "Welcome back, You have successfully checked in"
                         else:
                             row[3].value = checkedout_value + (" | " if checkedout_value else "") + current_time  # checkout
-                            final_message = "Checked out"
+                            final_message = "Goodbye, You have successfully checked out."
                     break
 
             wb.save(filename=file_path)
@@ -153,7 +153,7 @@ async def checkin_user(file: UploadFile):
             return JSONResponse(
                 status_code=400,
                 content={
-                    "message": "No face found. Please try again.",
+                    "message": "No face detected. Please ensure your face is clearly visible, look directly at the camera, and try again in a well-lit area.",
                 }
             )
         os.makedirs(upload_user_checkin_pics_directory,exist_ok=True)
@@ -197,7 +197,7 @@ async def checkin_user(file: UploadFile):
         return JSONResponse(
             status_code=200,
             content={
-                "message":f'Checked in: {checkedin_name}',
+                "message":f'Welcome back, ${checkedin_name}! You have successfully checked in.',
             }
         )
     except Exception as e:
@@ -267,7 +267,7 @@ async def recognize_user(file: UploadFile):
                     return JSONResponse(
                         status_code=200,
                         content={
-                            "message": f'Checked out, {checkedout_name}',
+                            "message": f'Goodbye, ${checkedout_name}! You have successfully checked out.',
                         }
                     )
                 else:
