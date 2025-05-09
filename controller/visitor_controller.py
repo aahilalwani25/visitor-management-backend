@@ -67,7 +67,7 @@ class VisitorController:
         [known_encodings, known_ids]= self.get_all_encodings()
 
         # Compare the uploaded face with all known faces
-        results = face_recognition.compare_faces(known_encodings, unknown_encoding, tolerance=0.5)
+        results = face_recognition.compare_faces(known_encodings, unknown_encoding, tolerance=0.45)
 
         for idx, match in enumerate(results):
             if match:
