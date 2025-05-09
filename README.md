@@ -26,7 +26,7 @@ Example: `pip install fastapi pytesseract` (You can use multiple library names a
 
 1. fastapi
 2. pytesseract
-3. numpy
+3. numpy==1.26.4
 4. uuid
 5. dlib
 6. face_recognition

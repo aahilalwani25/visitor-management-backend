@@ -13,13 +13,9 @@ from models.user_model import User
 from openpyxl import load_workbook, Workbook
 from datetime import datetime
 from controller.visitor_controller import VisitorController
-from google.cloud import vision
-from google.oauth2 import service_account
 import re
 
-# Load credentials from your service account key
-credentials = service_account.Credentials.from_service_account_file("service-account-key.json")
-client = vision.ImageAnnotatorClient(credentials=credentials)
+
 
 upload_user_checkin_pics_directory= "known_users_images"
 upload_user_checkin_encodings_directory= "known_users_encodings"
@@ -322,32 +318,3 @@ async def create_user(user: User):
             content={"message": str(e)}
         )
     
-
-@app.post('/scan-cnic/')
-async def scan_cnic(file: UploadFile):
-    try:
-        content = await file.read()
-        image = vision.Image(content=content)
-
-        response = client.text_detection(image=image)
-        texts = response.text_annotations
-
-        if response.error.message:
-            return {"error": response.error.message}
-
-        extracted_text = texts[0].description if texts else ""
-
-        return JSONResponse(
-            status_code=200,
-            content={
-                "message": extracted_text,
-                "data":{
-                    "text": extracted_text
-                }}
-        )
-    
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"message": str(e)}
-        )
