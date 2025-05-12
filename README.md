@@ -26,7 +26,7 @@ Example: `pip install fastapi pytesseract` (You can use multiple library names a
 
 1. fastapi
 2. pytesseract
-3. numpy
+3. numpy==1.26.4
 4. uuid
 5. dlib
 6. face_recognition
@@ -34,6 +34,9 @@ Example: `pip install fastapi pytesseract` (You can use multiple library names a
 8. uvicorn
 9. paddleocr
 10. torch=2.2.1
+11. torchvision
+12. websocket
+13. opencv-python
 
 ## Creating Virtual environment
 

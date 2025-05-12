@@ -14,11 +14,14 @@ from src.visitor_processor import extract_visitor_info, format_visitor_record
 import cv2
 from datetime import datetime
 from controller.visitor_controller import VisitorController
+from controller.id_card_controller import IdCardController
 import re
+import base64
 
 upload_user_checkin_pics_directory= "known_users_images"
 upload_user_checkin_encodings_directory= "known_users_encodings"
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+#model = torch.hub.load('ultralytics/yolov5', 'custom', path='cnic-yolov5.pt', force_reload=True)
 
 WORD = re.compile(r"\w+")
 
@@ -43,7 +46,7 @@ app.add_middleware(
 current_iso_time = datetime.utcnow().isoformat() + "Z"  # Adding 'Z' to indicate UTC
 
 @app.post('/verify/')
-async def checkin_user(file: UploadFile):
+async def verify_user(file: UploadFile):
     try:
         image = await file.read()
         extension= file.filename.split('.')[1]
@@ -244,3 +247,23 @@ async def create_user(user: User):
             status_code=500,
             content={"message": str(e)}
         )
+    
+@app.websocket("/ws/detect-cnic")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            image_bytes = base64.b64decode(data)
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if img is None:
+                await websocket.send_text("Invalid image")
+                continue
+
+            result = IdCardController().detect_id_card(img)
+            await websocket.send_text(str(result))
+    except Exception as e:
+        print("WebSocket error:", e)
+        await websocket.close()
