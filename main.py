@@ -173,35 +173,39 @@ async def scan_cnic(file: UploadFile):
             )
         
         # Format visitor record
-        visitor_record = format_visitor_record(name, cnic)
+        # visitor_record = format_visitor_record(name, cnic)
         
         # Save to Excel file
-        if os.path.exists(file_path):
-            workbook = load_workbook(file_path)
-            sheet = workbook.active
-        else:
-            workbook = Workbook()
-            sheet = workbook.active
-            sheet.title = "Sheet1"
-            headers = ["full_name", "cnic", "check_in", "check_out", "user_id"]
-            sheet.append(headers)
+        # if os.path.exists(file_path):
+        #     workbook = load_workbook(file_path)
+        #     sheet = workbook.active
+        # else:
+        #     workbook = Workbook()
+        #     sheet = workbook.active
+        #     sheet.title = "Sheet1"
+        #     headers = ["full_name", "cnic", "check_in", "check_out", "user_id"]
+        #     sheet.append(headers)
         
-        # Append visitor data
-        sheet.append([
-            visitor_record["full_name"],
-            visitor_record["cnic"],
-            visitor_record["check_in"],
-            visitor_record["check_out"],
-            visitor_record["user_id"]
-        ])
+        # # Append visitor data
+        # sheet.append([
+        #     visitor_record["full_name"],
+        #     visitor_record["cnic"],
+        #     visitor_record["check_in"],
+        #     visitor_record["check_out"],
+        #     visitor_record["user_id"]
+        # ])
         
-        workbook.save(file_path)
+        # workbook.save(file_path)
+        # v4= uuid.uuid4()
         
         return JSONResponse(
             status_code=200,
             content={
                 "message": "ID card processed and visitor recorded successfully",
-                "visitor": visitor_record
+                "data": {
+                    "full_name": name,
+                    "cnic": cnic
+                }
             }
         )
         
